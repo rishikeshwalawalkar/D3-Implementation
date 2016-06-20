@@ -1,0 +1,130 @@
+
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="css/d3.slider.css" />  
+<style>
+
+.counties {
+  fill: none;
+}
+
+.states {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+}
+
+.q0-9 { fill:rgb(171,0,235); }
+.q1-9 { fill:rgb(119,0,156); }
+.q2-9 { fill:rgb(156,0,5); }
+.q3-9 { fill:rgb(219,0,7); }
+.q4-9 { fill:rgb(99,230,221); }
+.q5-9 { fill:rgb(65,150,145); }
+.q6-9 { fill:rgb(192,150,67); }
+.q7-9 { fill:rgb(128,105,150); }
+.q8-9 { fill:rgb(169,232,171); }
+
+.tooltip {
+  border-radius: 12px;
+  font-size: 9px;
+  background: rgba(255,255,255,0.9);
+  color: #00f;
+  font-family: verdana;
+  padding: 5px;
+}
+
+
+</style>
+</head>
+
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/queue.v1.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+<script src="js/d3.slider.js"></script>
+<div id="yearslider"></div>
+
+<div>
+<script>
+
+var width = 960,
+    height = 600;
+
+var rateById = d3.map();
+
+var quantize = d3.scale.quantize()
+    .domain([0, .15])
+    .range(d3.range(9).map(function(i) { return "q" + i + "-9"; }));
+
+var projection = d3.geo.albersUsa()
+    .scale(1280)
+    .translate([width / 2, height / 2]);
+
+var path = d3.geo.path()
+    .projection(projection);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var tooltip = d3.tip()
+  .attr('class', 'tooltip')
+  .offset([-10, 0])
+  .html(function(d) {
+    return "<label style='color:blue'>zip - " + d.id + "</label>";
+  });
+/*queue()
+    .defer(d3.json, "us.json")
+    .defer(d3.tsv, "unemployment.tsv", function(d) { rateById.set(d.id, +d.rate); })
+    .await(ready);*/
+
+function ready(error, us) {
+svg.call(tooltip);
+  svg.append("g")
+      .attr("class", "counties")
+    .selectAll("path")
+      .data(topojson.feature(us, us.objects.counties).features)
+    .enter().append("path")
+      .attr("class", function(d) { return quantize(rateById.get(d.id)); })
+      .attr("d", path)
+	  .on("mouseover", tooltip.show)
+	  .on("mouseout", tooltip.hide);
+
+  svg.append("path")
+      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+      .attr("class", "states")
+      .attr("d", path);
+
+  	  
+}
+
+d3.select(self.frameElement).style("height", height + "px");
+
+d3.select('#yearslider').call(d3.slider().axis(d3.svg.axis().orient("bottom").ticks(6)).min(3).max(10).step(2).on("slide", function(evt, value) {
+	  if(value == 5) {
+		queue()
+		.defer(d3.json, "json/us.json")
+		.defer(d3.csv, "csv/NewData.csv", function(d) { rateById.set(d.id, +d.rate_2005);	})
+		.await(ready);
+	  }
+	  if(value == 7){
+		queue()
+    .defer(d3.json, "json/us.json")
+    .defer(d3.csv, "csv/NewData.csv", function(d) { rateById.set(d.id, +d.rate_2007); })
+    .await(ready);
+	  }
+	  if(value == 9){
+		queue()
+    .defer(d3.json, "json/us.json")
+    .defer(d3.csv, "csv/NewData.csv", function(d) { rateById.set(d.id, +d.rate_2009); })
+    .await(ready);
+	  }
+	
+    }));
+
+</script>
+</div>
+
+
+</body>
